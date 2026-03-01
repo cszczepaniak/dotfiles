@@ -8,3 +8,7 @@ add_newline = true
 [character]
 success_symbol = "[❯](bold green)"
 error_symbol = "[❯](bold red)"
+
+# Don't show AWS region/profile in the prompt
+[aws]
+disabled = true
