@@ -17,6 +17,11 @@ zinit light zsh-users/zsh-autosuggestions
 zinit light Aloxaf/fzf-tab
 
 # Load completions
+# On Linux/WSL, system vendor-completions can reference missing files (e.g. _docker when Docker isn't installed).
+# Remove that path before compinit to avoid "no such file or directory" errors. Safe on macOS (path usually not in fpath).
+if [[ "$OSTYPE" == linux* ]] && (( ${fpath[(I)/usr/share/zsh/vendor-completions]} )); then
+  fpath=("${(@)fpath:#/usr/share/zsh/vendor-completions}")
+fi
 autoload -Uz compinit && compinit
 
 zinit cdreplay -q
