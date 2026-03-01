@@ -9,9 +9,9 @@ fi
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 
 # Download zinit if we don't have it yet
-if [ ! -d "$ZINIT_HOME" ]; then
-		mkdir -p "$(dirname $ZINIT_HOME)"	
-		git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+if [[ ! -d "$ZINIT_HOME" ]]; then
+  mkdir -p "$(dirname "$ZINIT_HOME")"
+  git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 fi
 
 # Source/load zinit
@@ -43,7 +43,6 @@ bindkey '^n' history-search-forward
 HISTSIZE=5000
 HISTFILE=~/.zsh_history
 SAVEHIST=$HISTSIZE
-HISTDUP=erase
 setopt appendhistory
 setopt sharehistory
 setopt hist_ignore_all_dups
@@ -59,7 +58,7 @@ zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
 
 # Go things
-export PATH=$PATH:/home/cszczepaniak/go/bin
+export PATH=$PATH:$HOME/go/bin
 
 # Aliases
 alias ls='ls --color'
@@ -67,14 +66,39 @@ alias gs='git status'
 alias gp='git push'
 alias g='lazygit'
 
-# Shell integrations
-eval "$(fzf --zsh)"
+# mise (tool version manager) — must come before fzf so we can install fzf with mise
+if [[ -x ~/.local/bin/mise ]]; then
+  eval "$(~/.local/bin/mise activate zsh)"
+else
+  if [[ -o interactive ]]; then
+    read -q "?Install mise? (y/n) "
+    echo
+    if [[ $REPLY =~ ^[yY]$ ]]; then
+      curl -fsSL https://mise.run | sh
+      eval "$(~/.local/bin/mise activate zsh)"
+    fi
+  else
+    echo '[.zshrc] mise is not installed. Install it with: curl https://mise.run | sh'
+  fi
+fi
 
-# Homebrew (if on Linux)
-[[ $OSTYPE == 'linux-gnu' ]] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
-# ASDF/direnv
-. "$HOME/.asdf/asdf.sh"
-export ASDF_DIRENV_VERSION=2.32.3
-eval "$(direnv hook zsh)"
-direnv() { asdf exec direnv "$@"; }
+# Shell integrations for fzf
+if command -v fzf &>/dev/null; then
+  eval "$(fzf --zsh)"
+else
+  if [[ -x ~/.local/bin/mise ]]; then
+    if [[ -o interactive ]]; then
+      read -q "?Install fzf with mise? (y/n) "
+      echo
+      if [[ $REPLY =~ ^[yY]$ ]]; then
+        ~/.local/bin/mise use -g fzf
+        eval "$(~/.local/bin/mise activate zsh)"
+        command -v fzf &>/dev/null && eval "$(fzf --zsh)"
+      fi
+    else
+      echo '[.zshrc] fzf is not installed. Run: mise use -g fzf'
+    fi
+  else
+    echo '[.zshrc] fzf is not installed. Install mise first, then run: mise use -g fzf'
+  fi
+fi
