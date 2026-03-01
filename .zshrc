@@ -1,10 +1,3 @@
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
-
 # Set the directory we want to store zinit and plugins
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 
@@ -17,8 +10,6 @@ fi
 # Source/load zinit
 source "${ZINIT_HOME}/zinit.zsh"
 
-zinit ice depth=1; zinit light romkatv/powerlevel10k
-
 # Add zsh plugins
 zinit light zsh-users/zsh-syntax-highlighting
 zinit light zsh-users/zsh-completions
@@ -29,9 +20,6 @@ zinit light Aloxaf/fzf-tab
 autoload -Uz compinit && compinit
 
 zinit cdreplay -q
-
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # Keybindings
 bindkey -v
@@ -66,39 +54,54 @@ alias gs='git status'
 alias gp='git push'
 alias g='lazygit'
 
-# mise (tool version manager) — must come before fzf so we can install fzf with mise
-if [[ -x ~/.local/bin/mise ]]; then
-  eval "$(~/.local/bin/mise activate zsh)"
-else
+# --- mise + tools (install on first run if missing) ---
+MISE_BIN=~/.local/bin/mise
+
+_zshrc_ensure_mise() {
+  if [[ -x $MISE_BIN ]]; then
+    eval "$($MISE_BIN activate zsh)"
+    return
+  fi
   if [[ -o interactive ]]; then
     read -q "?Install mise? (y/n) "
     echo
     if [[ $REPLY =~ ^[yY]$ ]]; then
       curl -fsSL https://mise.run | sh
-      eval "$(~/.local/bin/mise activate zsh)"
+      eval "$($MISE_BIN activate zsh)"
     fi
   else
     echo '[.zshrc] mise is not installed. Install it with: curl https://mise.run | sh'
   fi
-fi
+}
 
-# Shell integrations for fzf
-if command -v fzf &>/dev/null; then
-  eval "$(fzf --zsh)"
-else
-  if [[ -x ~/.local/bin/mise ]]; then
-    if [[ -o interactive ]]; then
-      read -q "?Install fzf with mise? (y/n) "
-      echo
-      if [[ $REPLY =~ ^[yY]$ ]]; then
-        ~/.local/bin/mise use -g fzf
-        eval "$(~/.local/bin/mise activate zsh)"
-        command -v fzf &>/dev/null && eval "$(fzf --zsh)"
-      fi
-    else
-      echo '[.zshrc] fzf is not installed. Run: mise use -g fzf'
+# Usage: _zshrc_ensure_via_mise <cmd> "Prompt? (y/n) " 'init command to eval'
+_zshrc_ensure_via_mise() {
+  local cmd=$1
+  local prompt_msg=$2
+  local init_cmd=$3
+  if command -v $cmd &>/dev/null; then
+    eval "$init_cmd"
+    return
+  fi
+  if [[ ! -x $MISE_BIN ]]; then
+    echo "[.zshrc] $cmd is not installed. Install mise first, then run: mise use -g $cmd"
+    return
+  fi
+  if [[ -o interactive ]]; then
+    read -q "?$prompt_msg"
+    echo
+    if [[ $REPLY =~ ^[yY]$ ]]; then
+      $MISE_BIN use -g $cmd
+      eval "$($MISE_BIN activate zsh)"
+      command -v $cmd &>/dev/null && eval "$init_cmd"
     fi
   else
-    echo '[.zshrc] fzf is not installed. Install mise first, then run: mise use -g fzf'
+    echo "[.zshrc] $cmd is not installed. Run: mise use -g $cmd"
   fi
-fi
+}
+
+_zshrc_ensure_mise
+_zshrc_ensure_via_mise fzf "Install fzf with mise? (y/n) " 'eval "$(fzf --zsh)"'
+_zshrc_ensure_via_mise starship "Install starship with mise? (y/n) " 'eval "$(starship init zsh)"'
+
+unfunction _zshrc_ensure_mise _zshrc_ensure_via_mise

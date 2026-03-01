@@ -1,0 +1,10 @@
+# Starship prompt config (https://starship.rs)
+"$schema" = "https://starship.rs/config-schema.json"
+
+# Blank line between prompts
+add_newline = true
+
+# Prompt symbol: success = green arrow, error = red
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
