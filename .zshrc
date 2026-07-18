@@ -57,6 +57,7 @@ export PATH=$PATH:$HOME/go/bin
 alias ls='ls --color'
 alias gs='git status'
 alias gp='git push'
+alias gco='git checkout'
 alias g='lazygit'
 
 # --- mise + tools (install on first run if missing) ---
